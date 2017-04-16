@@ -1,7 +1,13 @@
 
 include ../makefile.inc
 
+TESTBIN = p1test
+
 all: librbf.a rbftest
+
+test:
+	make pretests
+	make -f makefile.test
 
 # lib file dependencies
 librbf.a: librbf.a(pfm.o)  # and possibly other .o files
@@ -11,10 +17,19 @@ librbf.a: librbf.a(rbfm.o)
 pfm.o: pfm.h
 rbfm.o: rbfm.h
 
-rbftest.o: pfm.h rbfm.h
+rbftest.o: pfm.h rbfm.h 
 
 # binary dependencies
 rbftest: rbftest.o librbf.a $(CODEROOT)/rbf/librbf.a
+
+
+# ---- [ADDED] 
+# project1 test
+pretests:
+	touch 00_exist.t
+	touch 02_destroy.t
+# ---- [/ADDED]
+
 
 # dependencies to compile used libraries
 .PHONY: $(CODEROOT)/rbf/librbf.a
@@ -23,4 +38,4 @@ $(CODEROOT)/rbf/librbf.a:
 
 .PHONY: clean
 clean:
-	-rm rbftest rbftest11a rbftest11b *.a *.o *~
+	-rm rbftest rbftest11a rbftest11b ${TESTBIN} *.a *.o *~ *.t

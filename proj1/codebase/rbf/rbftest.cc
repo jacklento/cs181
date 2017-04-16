@@ -14,6 +14,7 @@
 
 using namespace std;
 
+const int success = 0;
 
 // Function to prepare the data in the correct form to be inserted/read
 void prepareRecord(const int nameLength, const string &name, const int age, const float height, const int salary, void *buffer, int *recordSize)

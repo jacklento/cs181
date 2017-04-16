@@ -1,3 +1,6 @@
+#ifndef TEST_UTIL_H
+#define TEST_UTIL_H
+
 #include <iostream>
 #include <string>
 #include <cassert>
@@ -11,49 +14,8 @@
 #include "pfm.h"
 #include "rbfm.h"
 
-#define DEBUG    // delete this line to hide CERR logs and test 
-                 // can also compile with 
-                 //    "gmake XCFLAGS=-UDEBUG" to undefine
-                 // or "gmake XCFLagS=-DDEBUG" to define
-
-//CERR_LOG usage:
-//   CERR_LOG(char* format, ...);
-//   example: CERR_LOG("%s drank %d beers\n", name, num);
-
-//CERR_TEST usage:
-//   example: CERR_TEST(int x = 1; cerr << x << endl; 
-//                      x = myfunc(x); cerr << x << endl;);
-//   note: be careful of introducing side-effects!!
-//         try not to introduce permanent changes with this
-
-#ifndef DEBUG
-    #define CERR_LOG(...)  do{}while(0)
-    #define CERR_TEST(...) do{while(0)
-#else
-    #define CERR_LOG(...) do { \
-        fprintf(stderr, %s: %s %d: ", __FILE__, \
-                __func__, __LINE__); \
-        fprintf(stderr, __VA_ARGS__); } while(0)
-    #define CERR_TEST(STMTS) do { \
-        CERR_LOG("---- BEGIN CERR_TEST ----\n"); \
-        STMTS; \
-        CERR_LOG("----- END CERR_TEST ----\n"); } while(0)
-#endif
 
 using namespace std;
-
-
-// rc stands for return code
-// usage: rc::SUCCESS
-namespace rc {
-    enum RC { 
-        SUCCESS = 0, 
-        FAILURE, 
-        FILE_EXISTS, 
-        FILE_ERROR 
-    };
-}
-
 
 // Check whether a file exists
 bool FileExists(const string &fileName)
@@ -317,3 +279,5 @@ void createLargeRecordDescriptor2(vector<Attribute> &recordDescriptor) {
     }
     free(suffix);
 }
+
+#endif

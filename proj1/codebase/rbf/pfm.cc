@@ -1,5 +1,30 @@
+#include <assert.h>
+#include <errno.h>
+#include <libgen.h>
+#include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
 #include "pfm.h"
-#include "test_util.h"
+
+// rc stands for return code
+// usage: rc::SUCCESS
+
+namespace rc {
+
+    enum RC { 
+        success = 0, 
+        failure,
+        file_already_exists, 
+        file_delete_error,
+        file_open_error,
+        file_read_error, 
+        file_write_error, 
+    };
+}
 
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
@@ -24,16 +49,19 @@ PagedFileManager::~PagedFileManager()
 
 RC PagedFileManager::createFile(const string &fileName)
 {
-   if (FileExists(fileName)){
-      fprintf(stderr, "error: file already exists");
-      return rc::file_exists;
+   struct stat buffer;
+   const char* cfname = fileName.c_str();
+
+   if (stat (cfname, &buffer) == 0) {
+      eprintf ("error: file with name \"%s\" already exists\n", cfname);
+      return rc::file_already_exists;
    } else {
-      FILE* new_file = fopen(fileName.c_str(), "w");
+      FILE* new_file = fopen (cfname, "ab");
       if (new_file) {
          fclose(new_file);
       } else {
-         fprintf(stderr, "error: could not write to file");            
-         return -1;
+         eprintf("error: could not create file \"%s\"\n", cfname);
+         return rc::file_open_error;
       }
    } 
    return rc::success;
@@ -42,7 +70,12 @@ RC PagedFileManager::createFile(const string &fileName)
 
 RC PagedFileManager::destroyFile(const string &fileName)
 {
-    return -1;
+   const char* cfname = fileName.c_str();
+   if (remove (cfname) != 0) {
+      eprintf ("Error deleting file %s\n", cfname);
+      return rc::file_delete_error;
+   } 
+   return rc::success;
 }
 
 
@@ -99,3 +132,23 @@ RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePage
 {
     return -1;
 }
+
+void veprintf (const char* format, va_list args) {
+   assert (format != NULL);
+   fflush (NULL);
+   vfprintf (stderr, format, args);
+   fflush (NULL);
+}
+
+void eprintf (const char* format, ...) {
+   fprintf (stderr, "proj1: ");
+   va_list args;
+   va_start (args, format);
+   veprintf (format, args);
+   va_end (args);
+}
+
+void syseprintf (const char* object) {
+   eprintf ("%s: %s\n", object, strerror (errno));
+}
+
