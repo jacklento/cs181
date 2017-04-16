@@ -1,0 +1,22 @@
+Project 1 requirements
+
+[] Paged file manager
+	[] open file that's open returns error
+
+[] Record-based file manager
+	[] does not deal with paged file manager
+
+[] project report in text file
+[] code compiles
+[] pass provided test suite
+[] pass private test suite
+[] valgrind check succeeds
+
+[] suppress debug messages
+[] make clean before submitting
+[] format directory project1-studentID / codebase / {rbf, makefile.inc, readme.txt, project1_report.txt}
+[] zip project1-studentID folder into zip file "project1-studentID.zip"
+[] do not include extra files in "rbf" folder
+[] put test.sh and zip in same directory, run test.sh with
+	./test.sh ''project1-studentID''
+[] submit zip file to canvas
