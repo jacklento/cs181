@@ -19,18 +19,22 @@ RecordBasedFileManager::~RecordBasedFileManager()
 }
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
+    PagedFileManager::createFile(fileName);
     return -1;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {
+    PagedFileManager::destroyFile(fileName);
     return -1;
 }
 
 RC RecordBasedFileManager::openFile(const string &fileName, FileHandle &fileHandle) {
+    PagedFileManager::openFile(fileName, fileHandle);
     return -1;
 }
 
 RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
+    PagedFileManager::closeFile(fileHandle);
     return -1;
 }
 
