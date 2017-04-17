@@ -17,21 +17,28 @@ using namespace std;
 
 int main() {
    PagedFileManager* pfm = PagedFileManager::instance();
-   string filename = "00_exist.t";
-   const char* cfname = filename.c_str(); 
-   int rc = pfm->createFile (cfname);
-   printf("test_00: creatFile(%s) returned: %d.\n", 
+   FileHandle fh;
+
+   string sfname = "00_exist.t";
+   const char* cfname = sfname.c_str(); 
+   int rc = pfm->createFile (sfname);
+   printf("test_00: createFile(%s) returned: %d.\n", 
           cfname, rc);
 
-   filename = "01_create.t";
-   cfname = filename.c_str();
-   rc = pfm->createFile (cfname);
+   sfname = "01_create.t";
+   cfname = sfname.c_str();
+   rc = pfm->createFile (sfname);
    printf("test_01: createFile(%s) returned: %d.\n", cfname, rc);
    
-   filename = "02_destroy.t";
-   cfname = filename.c_str();
-   rc = pfm->destroyFile (cfname);
+   sfname = "02_destroy.t";
+   cfname = sfname.c_str();
+   rc = pfm->destroyFile (sfname);
    printf("test_01: destroyFile(%s) returned: %d.\n", cfname, rc);
+
+   sfname = "03_00_no_exist.t"; 
+   cfname = sfname.c_str();
+   rc = pfm->openFile (sfname, fh);
+   printf("test_03_00: openFile(%s) returned: %d.\n", cfname, rc);
 
    cout << "done" << endl;
    return 0;

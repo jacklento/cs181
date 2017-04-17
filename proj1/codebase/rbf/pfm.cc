@@ -1,3 +1,5 @@
+#include <vector>
+
 #include <assert.h>
 #include <errno.h>
 #include <libgen.h>
@@ -10,6 +12,7 @@
 
 #include "pfm.h"
 
+
 // rc stands for return code
 // usage: rc::SUCCESS
 
@@ -19,14 +22,61 @@ namespace rc {
         success = 0, 
         failure,
         file_already_exists, 
+        file_does_not_exist, 
+        file_create_error,
         file_delete_error,
         file_open_error,
+        file_close_error,
         file_read_error, 
         file_write_error, 
+        file_handle_in_use,
+        last_rc  // This must be the last RC
     };
 }
 
+const vector<string> rc_msgs = {
+   "Success",                      
+   "error",                         
+   "error: file already exists",  
+   "error: file does not exist",
+   "error: file create error",
+   "error: file delete error",
+   "error: file open error",
+   "error: file close error",
+   "error: file read error",
+   "error: file write error",
+   "error: file handle in use",
+   "last return code"
+};
+
+
+#define RC_MSG(RCODE, FORMAT, ...) do { \
+    eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, __LINE__, \
+            RCODE, rc_msgs.at(RCODE).c_str()); \
+    if (RCODE != rc::success) eprintf (FORMAT,__VA_ARGS__); } while(0)
+
+//
+// PRIVATE HELPER FUNCTIONS
+//
+
+bool existsFile(const char* cfname);
+void rcprintf(int rc);
+
+//
+// PRIVATE HELPER FUNCTION DEFINITIONS
+//
+
+bool existsFile(const char* cfname) {
+   struct stat buffer;
+   return (stat (cfname, &buffer) == 0);
+}
+
+//
+// MEMBER FUNCTION DEFINITIONS
+//
+
 PagedFileManager* PagedFileManager::_pf_manager = 0;
+
 
 PagedFileManager* PagedFileManager::instance()
 {
@@ -47,24 +97,25 @@ PagedFileManager::~PagedFileManager()
 }
 
 
+
 RC PagedFileManager::createFile(const string &fileName)
 {
-   struct stat buffer;
+   RC rcode = rc::success;
    const char* cfname = fileName.c_str();
 
-   if (stat (cfname, &buffer) == 0) {
-      eprintf ("error: file with name \"%s\" already exists\n", cfname);
-      return rc::file_already_exists;
+   if (existsFile (cfname)) {
+      rcode = rc::file_already_exists;
    } else {
-      FILE* new_file = fopen (cfname, "ab");
+      // creates/overwrites a new binary read/write file
+      FILE* new_file = fopen (cfname, "wb+");
       if (new_file) {
          fclose(new_file);
       } else {
-         eprintf("error: could not create file \"%s\"\n", cfname);
-         return rc::file_open_error;
+         rcode = rc::file_create_error;
       }
    } 
-   return rc::success;
+   RC_MSG (rcode, " [filename: \"%s\"]\n", cfname);
+   return rcode;
 }
 
 
@@ -72,16 +123,33 @@ RC PagedFileManager::destroyFile(const string &fileName)
 {
    const char* cfname = fileName.c_str();
    if (remove (cfname) != 0) {
-      eprintf ("Error deleting file %s\n", cfname);
+      RC_MSG (rc::file_delete_error, " [filename: \"%s\"]\n", cfname);
       return rc::file_delete_error;
    } 
    return rc::success;
 }
 
-
+//PRE: file with fileName must already exist
+//PRE: fileHandle must not have another file open (aka it must be free)
 RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 {
-    return -1;
+   const char* cfname = fileName.c_str();
+   RC rcode = rc::success;
+   if (!existsFile (cfname)) {
+      rcode = rc::file_does_not_exist;
+   } else if (fileHandle.isInUse()) {
+      rcode = rc::file_handle_in_use;
+   } else {
+      // opens existsing file in binary read/write mode 
+      FILE* myfile = fopen (cfname, "rb+");
+      if (myfile) {
+         fileHandle.setFile(myfile);
+      } else {
+         rcode = rc::file_open_error;
+      }
+   }
+   RC_MSG (rcode, " [filename = \"%s\"]\n", cfname);
+   return rcode;
 }
 
 
@@ -91,8 +159,9 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 }
 
 
-FileHandle::FileHandle()
+FileHandle::FileHandle() : _file (NULL)
 {
+    
     readPageCounter = 0;
     writePageCounter = 0;
     appendPageCounter = 0;
@@ -101,6 +170,21 @@ FileHandle::FileHandle()
 
 FileHandle::~FileHandle()
 {
+}
+
+
+inline bool FileHandle::isFree() {
+   return _file == NULL;
+}
+
+
+inline bool FileHandle::isInUse() {
+   return _file != NULL;
+}
+
+
+inline void FileHandle::setFile(FILE* file) {
+   _file = file;
 }
 
 
@@ -133,6 +217,10 @@ RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePage
     return -1;
 }
 
+//
+// PUBLIC NONMEMBER FUNCTION DEFINITIONS 
+//
+
 void veprintf (const char* format, va_list args) {
    assert (format != NULL);
    fflush (NULL);
@@ -141,7 +229,6 @@ void veprintf (const char* format, va_list args) {
 }
 
 void eprintf (const char* format, ...) {
-   fprintf (stderr, "proj1: ");
    va_list args;
    va_start (args, format);
    veprintf (format, args);
@@ -152,3 +239,6 @@ void syseprintf (const char* object) {
    eprintf ("%s: %s\n", object, strerror (errno));
 }
 
+void rcprintf(int rc) {
+   if (rc) eprintf ("rc #%d: %s\n", rc, rc_msgs.at(rc).c_str());
+}

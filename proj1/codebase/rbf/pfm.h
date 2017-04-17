@@ -8,6 +8,8 @@ typedef char byte;
 #define PAGE_SIZE 4096
 #include <string>
 #include <climits>
+
+#define DEBUG
 using namespace std;
 
 class FileHandle;
@@ -46,6 +48,16 @@ public:
     FileHandle();       // Default constructor
     ~FileHandle();      // Destructor
 
+    inline bool isFree();      // checks if this FileHandle is free   
+                               //   (opposite of isInUse()) 
+
+    inline bool isInUse();     // checks if this FileHandle is in use 
+                               //   (opposite of isFree()) 
+  
+
+    // Set FileHandler to NULL to be free or to a file stream to be in use
+    void setFile(FILE* fileStream);  
+
     // Get a specific page
     RC readPage(PageNum pageNum, void *data);
 
@@ -62,9 +74,24 @@ public:
     RC collectCounterValues(unsigned &readPageCount, 
                             unsigned &writePageCount, 
                             unsigned &appendPageCount);  
+
+private:
+    FILE* _file;
 }; 
 
-#define DEBUG    // delete this line to hide CERR logs and test 
+
+// PUBLIC HELPER FUNCTIONS
+// error messaging
+void veprintf (const char* format, va_list args);
+void eprintf (const char* format, ...);
+void syseprintf (const char* object);
+
+#define ERR_MSG(...) do { \
+    eprintf("%s: %s %d: ", __FILE__, __func__, __LINE__); \
+    eprintf(__VA_ARGS__); } while(0)
+
+
+#define DEBUG    // comment this line to hide CERR logs and test 
                  // can also compile with 
                  //    "gmake XCFLAGS=-UDEBUG" to undefine
                  // or "gmake XCFLagS=-DDEBUG" to define
@@ -79,22 +106,19 @@ public:
 //   note: be careful of introducing side-effects!!
 //         try not to introduce permanent changes with this
 
-void veprintf (const char* format, va_list args);
-void eprintf (const char* format, ...);
-void syseprintf (const char* object);
 
 #ifndef DEBUG
-    #define CERR_LOG(...)  do{}while(0)
-    #define CERR_TEST(...) do{while(0)
+    #define DEBUG_LOG(...)  do{}while(0)
+    #define DEBUG_TEST(...) do{}while(0)
 #else
-    #define CERR_LOG(...) do { \
-        fprintf(stderr, "%s: %s %d: ", __FILE__, \
+    #define DEBUG_LOG(...) do { \
+        eprintf("(DB) %s: %s %d: ", __FILE__, \
                 __func__, __LINE__); \
-        fprintf(stderr, __VA_ARGS__); } while(0)
-    #define CERR_TEST(STMTS) do { \
-        CERR_LOG("---- BEGIN CERR_TEST ----\n"); \
+        eprintf(__VA_ARGS__); } while(0)
+    #define DEBUG_TEST(STMTS) do { \
+        DEBUG_LOG("---- BEGIN CERR_TEST ----\n"); \
         STMTS; \
-        CERR_LOG("----- END CERR_TEST ----\n"); } while(0)
+        DEBUG_LOG("----- END CERR_TEST ----\n"); } while(0)
 #endif
 
 
