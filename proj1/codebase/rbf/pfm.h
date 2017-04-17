@@ -49,11 +49,8 @@ public:
     
     FileHandle();       // Default constructor
     ~FileHandle();      // Destructor
-
-    inline bool isInUse();       // Check if this FileHandle is in use 
-                                 //   (opposite of isFree()) 
   
-    inline bool isFree();        // Check if this FileHandle is free   
+    inline bool isEmpty();        // Check if this FileHandle is free   
                                  //   (opposite of isInUse()) 
 
     // Get a specific page
@@ -75,6 +72,7 @@ public:
 
 private:
     FILE* _file;
+    int _page_count;
 }; 
 
 
