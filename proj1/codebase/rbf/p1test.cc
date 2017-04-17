@@ -48,6 +48,12 @@ int main() {
    rc = pfm->openFile (sfname, fh);
    printf("test_03_02: openFile(%s, fh) returned: %d.\n", cfname, rc);
 
+   rc = pfm->closeFile(fh);
+   printf("test_04_00: closeFile(fh) returned: %d.\n", rc);
+
+   rc = pfm->closeFile(fh);
+   printf("test_04_01: closeFile(fh) returned: %d.\n", rc);
+
    cout << "done" << endl;
    return 0;
 }

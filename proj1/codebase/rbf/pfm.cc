@@ -52,14 +52,14 @@ const vector<string> rc_msgs = {
 };
 
 void assertRc() {
-   assert(rc_msgs.size() == last_rc + 1);
+   assert(rc_msgs.size() == rc::last_rc + 1);
 }
 
-#define RC_MSG(RCODE, FORMAT, ...) do { \
-    if (RCODE != rc::success) { \ 
-       eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, __LINE__, \
-            RCODE, rc_msgs.at(RCODE).c_str()); \
-       eprintf (FORMAT,__VA_ARGS__); } } while(0)
+#define RC_MSG(RCODE, ...) do {\
+    if (RCODE != rc::success) {\ 
+       eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, \
+               __LINE__, RCODE, rc_msgs.at(RCODE).c_str()); \
+       eprintf (__VA_ARGS__); } } while(0)
 
 //
 // PRIVATE HELPER FUNCTIONS
@@ -162,13 +162,14 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
     if (fileHandle._file == NULL) {
-       RC_MSG (rc::file_handle_empty, ", nothing to close");
+       RC_MSG (rc::file_handle_empty, "-- nothing to close\n");
        return rc::file_handle_empty;
     } 
-    if (!fclose (fileHandle._file) {
-       RC_MSG (rc::file_close_error);
+    if (fclose (fileHandle._file)) {
+       RC_MSG (rc::file_close_error, "\n");
        return rc::file_close_error;
     }
+    fileHandle._file = NULL;
     return rc::success;
 }
 
