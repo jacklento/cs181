@@ -30,6 +30,7 @@ namespace rc {
         file_read_error, 
         file_write_error, 
         file_handle_in_use,
+        file_handle_empty,
         last_rc  // This must be the last RC
     };
 }
@@ -46,14 +47,19 @@ const vector<string> rc_msgs = {
    "error: file read error",
    "error: file write error",
    "error: file handle in use",
+   "error: file handle empty",
    "last return code"
 };
 
+void assertRc() {
+   assert(rc_msgs.size() == last_rc + 1);
+}
 
 #define RC_MSG(RCODE, FORMAT, ...) do { \
-    eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, __LINE__, \
+    if (RCODE != rc::success) { \ 
+       eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, __LINE__, \
             RCODE, rc_msgs.at(RCODE).c_str()); \
-    if (RCODE != rc::success) eprintf (FORMAT,__VA_ARGS__); } while(0)
+       eprintf (FORMAT,__VA_ARGS__); } } while(0)
 
 //
 // PRIVATE HELPER FUNCTIONS
@@ -140,10 +146,10 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
    } else if (fileHandle.isInUse()) {
       rcode = rc::file_handle_in_use;
    } else {
-      // opens existsing file in binary read/write mode 
-      FILE* myfile = fopen (cfname, "rb+");
-      if (myfile) {
-         fileHandle.setFile(myfile);
+      // opens existing file in binary read/write mode 
+      FILE* file = fopen (cfname, "rb+");
+      if (file) {
+         fileHandle._file = file;
       } else {
          rcode = rc::file_open_error;
       }
@@ -155,7 +161,15 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-    return -1;
+    if (fileHandle._file == NULL) {
+       RC_MSG (rc::file_handle_empty, ", nothing to close");
+       return rc::file_handle_empty;
+    } 
+    if (!fclose (fileHandle._file) {
+       RC_MSG (rc::file_close_error);
+       return rc::file_close_error;
+    }
+    return rc::success;
 }
 
 
@@ -180,11 +194,6 @@ inline bool FileHandle::isFree() {
 
 inline bool FileHandle::isInUse() {
    return _file != NULL;
-}
-
-
-inline void FileHandle::setFile(FILE* file) {
-   _file = file;
 }
 
 

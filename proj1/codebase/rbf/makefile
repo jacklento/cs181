@@ -28,6 +28,7 @@ rbftest: rbftest.o librbf.a $(CODEROOT)/rbf/librbf.a
 pretests:
 	touch 00_exist.t
 	touch 02_destroy.t
+	touch 03_01_open.t
 # ---- [/ADDED]
 
 

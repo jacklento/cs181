@@ -1,0 +1,26 @@
+QUESTIONS:
+---------
+
+Q1:   How do we find max file size?
+A1:   Jack: don't think we need to. Jean: awesome
+
+Q2:   FileHandle getters/setters or friends?
+NOTE: IF FRIENDS: then don't need isFree(), isOpen(), 
+                  set(), free(), and clear()
+A2:   IF only pfm then FRIEND
+
+Q3:   Does RBFM write records to the file each time? 
+      Or does RBFM work on a page in memory?
+      And then "push" changes to the file's page through FileHandle methods?
+
+Q4:   Project Description: Memory: What is considered a large portion to
+      not store in memory?
+
+DESIGN DILEMMAS:
+---------------
+
+
+NOTES:
+-----
+- FileHandle readPage should read until freespace and then seek to the end of
+  slot inventory

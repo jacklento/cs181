@@ -40,6 +40,14 @@ int main() {
    rc = pfm->openFile (sfname, fh);
    printf("test_03_00: openFile(%s) returned: %d.\n", cfname, rc);
 
+   sfname = "03_01_open.t"; 
+   cfname = sfname.c_str();
+   rc = pfm->openFile (sfname, fh);
+   printf("test_03_01: openFile(%s, fh) returned: %d.\n", cfname, rc);
+
+   rc = pfm->openFile (sfname, fh);
+   printf("test_03_02: openFile(%s, fh) returned: %d.\n", cfname, rc);
+
    cout << "done" << endl;
    return 0;
 }

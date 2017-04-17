@@ -40,6 +40,8 @@ private:
 class FileHandle
 {
 public:
+    friend class PagedFileManager;
+
     // variables to keep the counter for each operation
     unsigned readPageCounter;
     unsigned writePageCounter;
@@ -48,15 +50,11 @@ public:
     FileHandle();       // Default constructor
     ~FileHandle();      // Destructor
 
-    inline bool isFree();      // checks if this FileHandle is free   
-                               //   (opposite of isInUse()) 
-
-    inline bool isInUse();     // checks if this FileHandle is in use 
-                               //   (opposite of isFree()) 
+    inline bool isInUse();       // Check if this FileHandle is in use 
+                                 //   (opposite of isFree()) 
   
-
-    // Set FileHandler to NULL to be free or to a file stream to be in use
-    void setFile(FILE* fileStream);  
+    inline bool isFree();        // Check if this FileHandle is free   
+                                 //   (opposite of isInUse()) 
 
     // Get a specific page
     RC readPage(PageNum pageNum, void *data);
