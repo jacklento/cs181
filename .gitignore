@@ -1,3 +1,6 @@
 *.sw*
 *.o
 *.t
+.DS*
+seektopage.txt
+sync_fork.txt

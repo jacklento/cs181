@@ -31,6 +31,7 @@ namespace rc {
         file_write_error, 
         file_handle_in_use,
         file_handle_empty,
+        page_does_not_exist,
         last_rc  // This must be the last RC
     };
 }
@@ -143,7 +144,7 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
    RC rcode = rc::success;
    if (!existsFile (cfname)) {
       rcode = rc::file_does_not_exist;
-   } else if (fileHandle.isInUse()) {
+   } else if (!fileHandle.isEmpty()) {
       rcode = rc::file_handle_in_use;
    } else {
       // opens existing file in binary read/write mode 
@@ -158,10 +159,10 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
    return rcode;
 }
 
-
+//need to flush all pages to disk
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-    if (fileHandle._file == NULL) {
+    if (fileHandle.isEmpty()) {
        RC_MSG (rc::file_handle_empty, "-- nothing to close\n");
        return rc::file_handle_empty;
     } 
@@ -176,7 +177,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 
 FileHandle::FileHandle() : _file (NULL)
 {
-    
+    _page_count = 0;
     readPageCounter = 0;
     writePageCounter = 0;
     appendPageCounter = 0;
@@ -188,18 +189,22 @@ FileHandle::~FileHandle()
 }
 
 
-inline bool FileHandle::isFree() {
+inline bool FileHandle::isEmpty() {
    return _file == NULL;
 }
 
-
-inline bool FileHandle::isInUse() {
-   return _file != NULL;
-}
-
-
+//data pointer unchecked
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
+    if(isEmpty()){
+      RC_MSG(rc::file_handle_empty, "\n");
+      return rc::file_handle_empty;
+    }
+
+    if(pageNum >= 0 && pageNum < (_page_count-1)){
+       RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
+       return rc::page_does_not_exist;
+    }
     return -1;
 }
 
