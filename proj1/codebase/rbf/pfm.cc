@@ -33,6 +33,9 @@ namespace rc {
         file_handle_in_use,
         file_handle_empty,
         page_does_not_exist,
+        page_read_error,
+        page_write_error,
+        page_append_error,
         last_rc  // This must be the last RC
     };
 }
@@ -50,6 +53,10 @@ const vector<string> rc_msgs = {
    "error: file write error",
    "error: file handle in use",
    "error: file handle empty",
+   "error: page does not exist",
+   "error: page read error",
+   "error: page write error",
+   "error: page append error",
    "last return code"
 };
 
@@ -67,16 +74,11 @@ void assertRc() {
 //
 
 bool existsFile(const char* cfname);
+
+inline int pageBeginPos(PageNum pageNum);
+inline int pageEndPos(PageNum pageNum);
+
 void rcprintf(int rc);
-
-//
-// PRIVATE HELPER FUNCTION DEFINITIONS
-//
-
-bool existsFile(const char* cfname) {
-   struct stat buffer;
-   return (stat (cfname, &buffer) == 0);
-}
 
 //
 // MEMBER FUNCTION DEFINITIONS
@@ -104,6 +106,11 @@ PagedFileManager::~PagedFileManager()
 }
 
 
+bool existsFile(const char* cfname) {
+   struct stat buffer;
+   return (stat (cfname, &buffer) == 0);
+}
+
 
 RC PagedFileManager::createFile(const string &fileName)
 {
@@ -125,8 +132,7 @@ RC PagedFileManager::createFile(const string &fileName)
    return rcode;
 }
 
-// WARNING: must close all connections first
-// NOTE: no FileHandle tracking implemented
+// WARNING: user must close/free all associated FileHandles
 RC PagedFileManager::destroyFile(const string &fileName)
 {
    const char* cfname = fileName.c_str();
@@ -138,12 +144,12 @@ RC PagedFileManager::destroyFile(const string &fileName)
 }
 
 //PRE: file with fileName must already exist
-//PRE: fileHandle must not have another file open (aka it must be free)
-//TODO: update fileHandle._page_count
-RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
+//PRE: fileHandle must be empty
+RC PagedFileManager::openFile(const string &fileName, 
+                              FileHandle &fileHandle)
 {
    if (!fileHandle.isEmpty()) {
-      RC_MSG (rc::file_handle_in_use);
+      RC_MSG (rc::file_handle_in_use, "\n");
       return rc::file_handle_in_use;
    } 
    const char* cfname = fileName.c_str();
@@ -155,11 +161,11 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
       return rc::file_does_not_exist;
    } 
    // Open existing file in binary read/write mode 
-   FILE* file = fopen (cfname, "rb+");
+   FILE* fstrm = fopen (cfname, "rb+");
    if (file) {
       // Set the file to the FileHandle
-      fileHandle._file = file;
-      fileHandle._page_count = ceil (buffer.st_size / PAGE_SIZE); 
+      fileHandle._fstream = fstrm;
+      fileHandle._page_count = buffer.st_size / PAGE_SIZE; 
    } else {
       RC_MSG (rc::file_open_error, " [filename: \"%s\"]\n", cfname);
       return rc::file_open_error;
@@ -174,18 +180,19 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
        RC_MSG (rc::file_handle_empty, "\n");
        return rc::file_handle_empty;
     } 
-    if (fclose (fileHandle._file)) {
+    if (fclose (fileHandle._fstream)) {
        RC_MSG (rc::file_close_error, "\n");
        return rc::file_close_error;
     }
-    fileHandle._file = NULL;
+    fileHandle._fstream = NULL;
+    fileHandle._page_count = 0; 
     return rc::success;
 }
 
 
-FileHandle::FileHandle() : _file (NULL)
+FileHandle::FileHandle() : 
+    _fstream (NULL), _page_count (0) 
 {
-    _page_count = 0;
     readPageCounter = 0;
     writePageCounter = 0;
     appendPageCounter = 0;
@@ -198,60 +205,84 @@ FileHandle::~FileHandle()
 
 
 inline bool FileHandle::isEmpty() {
-   return _file == NULL;
+   return _fstream == NULL;
 }
 
-//data pointer unchecked
+inline int pageBeginPos(PageNum pageNum) {
+   return pageNum * PAGE_SIZE;
+} 
+
+inline int pageEndPos(PageNum pageNum) {
+   return pageBeginPos(pageNum) + PAGE_SIZE -1;
+}
+
+//PRE: data mallocced PAGE_SIZE
+//WARNING: no data size check, no NULL check
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-    if (isEmpty()){
-      RC_MSG(rc::file_handle_empty, "\n");
-      return rc::file_handle_empty;
-    }
-    if (pageNum >= 0 && pageNum < (_page_count-1)){
-       RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
-       return rc::page_does_not_exist;
-    }
+   DEBUG_TEST(
+      if (*data == NULL) {
+         DEBUG_LOG("error: void* data == NULL\n"); 
+      }
+   );
+
+   if (isEmpty()) {
+     RC_MSG(rc::file_handle_empty, "\n");
+     return rc::file_handle_empty;
+   }
+   if (pageNum >= _page_count ) {
+      RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
+      return rc::page_does_not_exist;
+   }
+
+// Jean ----
+   int fread_rc = fread (data, 1, FILE_SIZE, _fstream);
+   if (fread_rc != FILE_SIZE) {
+       
 
 
-    //jack's code start
-    struct stat fileStat;
-    if (fstat (_file, &fileStat) => -1) {
+
+
+
+       RC_MSG(rc::file_read_error, "[pageNum: %d]\n", pageNum);
        return rc::file_read_error;
     }
-    if ( (fileStat.size / 4096) < pageNum) {
-       return rc::file_read_error;
-    }
-    in start;
-    start = (fileStat.st_size % 4096);
-    fread (*data, 1, 4096, start)
-    //jack's code end
-
+    if (
+// ---- Jean
+        
+    
+    ++readPageCounter; 
     return -1;
 }
 
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
+
+    ++writePageCounter; 
     return -1;
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
+    ++appendPageCounter; 
     return -1;
 }
 
 
-unsigned FileHandle::getNumberOfPages()
+nsigned FileHandle::getNumberOfPages()
 {
-    return -1;
+    return _page_count;
 }
 
 
 RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
 {
-    return -1;
+    readPageCount = readPageCounter;
+    writePageCount = writePageCounter;
+    appendPageCount = appendPageCounter;
+    return rc::success;
 }
 
 //

@@ -71,8 +71,8 @@ public:
                             unsigned &appendPageCount);  
 
 private:
-    FILE* _file;
-    int _page_count;
+    FILE* _fstream;
+    size_t _page_count;
 }; 
 
 
