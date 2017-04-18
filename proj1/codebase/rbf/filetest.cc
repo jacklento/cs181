@@ -25,6 +25,7 @@ int main() {
 
    //2-----------
    char* buffer = (char*)malloc(100);
+   printf(sizeof(buffer));
 
    int fread_rc = fread(buffer, 1, 10, fstrm);
    printf("fread = %d\nfeof = %d\nferror = %d\n", fread_rc, feof(fstrm), ferror(fstrm));

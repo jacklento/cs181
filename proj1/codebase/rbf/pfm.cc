@@ -162,7 +162,7 @@ RC PagedFileManager::openFile(const string &fileName,
    } 
    // Open existing file in binary read/write mode 
    FILE* fstrm = fopen (cfname, "rb+");
-   if (file) {
+   if (fstrm) {
       // Set the file to the FileHandle
       fileHandle._fstream = fstrm;
       fileHandle._page_count = buffer.st_size / PAGE_SIZE; 
@@ -216,12 +216,12 @@ inline int pageEndPos(PageNum pageNum) {
    return pageBeginPos(pageNum) + PAGE_SIZE -1;
 }
 
-//PRE: data mallocced PAGE_SIZE
+//PRE: data must be of size PAGE_SIZE 
 //WARNING: no data size check, no NULL check
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
    DEBUG_TEST(
-      if (*data == NULL) {
+      if (data == NULL) {
          DEBUG_LOG("error: void* data == NULL\n"); 
       }
    );
@@ -235,30 +235,28 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
       return rc::page_does_not_exist;
    }
 
-// Jean ----
-   int fread_rc = fread (data, 1, FILE_SIZE, _fstream);
-   if (fread_rc != FILE_SIZE) {
-       
+   int fread_rc = fread (data, 1, PAGE_SIZE, _fstream);
 
 
-
-
-
-       RC_MSG(rc::file_read_error, "[pageNum: %d]\n", pageNum);
-       return rc::file_read_error;
-    }
-    if (
-// ---- Jean
-        
-    
-    ++readPageCounter; 
-    return -1;
+   DEBUG_TEST(
+      if (!ferror (_fstream)) {
+         RC_MSG(rc::file_read_error, "\n");
+         return rc::file_read_error;
+      }
+      if (fread_rc != PAGE_SIZE) {
+         RC_MSG(rc::page_read_error, "\n");
+         return rc::page_read_error;
+      }
+   );
+ 
+   ++readPageCounter; 
+   return rc::success;    
 }
 
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
-
+    
     ++writePageCounter; 
     return -1;
 }
@@ -271,7 +269,7 @@ RC FileHandle::appendPage(const void *data)
 }
 
 
-nsigned FileHandle::getNumberOfPages()
+unsigned FileHandle::getNumberOfPages()
 {
     return _page_count;
 }
