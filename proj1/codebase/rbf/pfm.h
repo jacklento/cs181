@@ -40,6 +40,7 @@ private:
 class FileHandle
 {
 public:
+    //openFile and closeFile
     friend class PagedFileManager;
 
     // variables to keep the counter for each operation
@@ -47,11 +48,10 @@ public:
     unsigned writePageCounter;
     unsigned appendPageCounter;
     
-    FileHandle();       // Default constructor
-    ~FileHandle();      // Destructor
+    FileHandle();              // Default constructor
+    ~FileHandle();             // Destructor
   
-    inline bool isEmpty();        // Check if this FileHandle is free   
-                                 //   (opposite of isInUse()) 
+    inline bool isEmpty();     // Check if this FileHandle is free   
 
     // Get a specific page
     RC readPage(PageNum pageNum, void *data);

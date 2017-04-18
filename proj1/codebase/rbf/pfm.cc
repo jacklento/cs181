@@ -1,6 +1,7 @@
 #include <vector>
 
-#include <assert.h>
+#include <cmath> // ceil
+#include <assert.h> // assert
 #include <errno.h>
 #include <libgen.h>
 #include <limits.h>
@@ -8,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <sys/stat.h> // stat
 
 #include "pfm.h"
 
@@ -57,10 +58,9 @@ void assertRc() {
 }
 
 #define RC_MSG(RCODE, ...) do {\
-    if (RCODE != rc::success) {\ 
        eprintf("%s: %s %d: rc#%d: %s ", __FILE__, __func__, \
                __LINE__, RCODE, rc_msgs.at(RCODE).c_str()); \
-       eprintf (__VA_ARGS__); } } while(0)
+       eprintf (__VA_ARGS__); } while(0)
 
 //
 // PRIVATE HELPER FUNCTIONS
@@ -125,7 +125,8 @@ RC PagedFileManager::createFile(const string &fileName)
    return rcode;
 }
 
-
+// WARNING: must close all connections first
+// NOTE: no FileHandle tracking implemented
 RC PagedFileManager::destroyFile(const string &fileName)
 {
    const char* cfname = fileName.c_str();
@@ -138,32 +139,39 @@ RC PagedFileManager::destroyFile(const string &fileName)
 
 //PRE: file with fileName must already exist
 //PRE: fileHandle must not have another file open (aka it must be free)
+//TODO: update fileHandle._page_count
 RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 {
+   if (!fileHandle.isEmpty()) {
+      RC_MSG (rc::file_handle_in_use);
+      return rc::file_handle_in_use;
+   } 
    const char* cfname = fileName.c_str();
-   RC rcode = rc::success;
-   if (!existsFile (cfname)) {
-      rcode = rc::file_does_not_exist;
-   } else if (!fileHandle.isEmpty()) {
-      rcode = rc::file_handle_in_use;
+   struct stat buffer;
+   // Check if file exists
+   if (stat (cfname, &buffer) == 0) {
+      RC_MSG (rc::file_does_not_exist, 
+              " [filename: \"%s\"]\n", cfname);
+      return rc::file_does_not_exist;
+   } 
+   // Open existing file in binary read/write mode 
+   FILE* file = fopen (cfname, "rb+");
+   if (file) {
+      // Set the file to the FileHandle
+      fileHandle._file = file;
+      fileHandle._page_count = ceil (buffer.st_size / PAGE_SIZE); 
    } else {
-      // opens existing file in binary read/write mode 
-      FILE* file = fopen (cfname, "rb+");
-      if (file) {
-         fileHandle._file = file;
-      } else {
-         rcode = rc::file_open_error;
-      }
+      RC_MSG (rc::file_open_error, " [filename: \"%s\"]\n", cfname);
+      return rc::file_open_error;
    }
-   RC_MSG (rcode, " [filename = \"%s\"]\n", cfname);
-   return rcode;
+   return rc::success;
 }
 
 //need to flush all pages to disk
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
     if (fileHandle.isEmpty()) {
-       RC_MSG (rc::file_handle_empty, "-- nothing to close\n");
+       RC_MSG (rc::file_handle_empty, "\n");
        return rc::file_handle_empty;
     } 
     if (fclose (fileHandle._file)) {
@@ -196,15 +204,29 @@ inline bool FileHandle::isEmpty() {
 //data pointer unchecked
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-    if(isEmpty()){
+    if (isEmpty()){
       RC_MSG(rc::file_handle_empty, "\n");
       return rc::file_handle_empty;
     }
-
-    if(pageNum >= 0 && pageNum < (_page_count-1)){
+    if (pageNum >= 0 && pageNum < (_page_count-1)){
        RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
        return rc::page_does_not_exist;
     }
+
+
+    //jack's code start
+    struct stat fileStat;
+    if (fstat (_file, &fileStat) => -1) {
+       return rc::file_read_error;
+    }
+    if ( (fileStat.size / 4096) < pageNum) {
+       return rc::file_read_error;
+    }
+    in start;
+    start = (fileStat.st_size % 4096);
+    fread (*data, 1, 4096, start)
+    //jack's code end
+
     return -1;
 }
 
