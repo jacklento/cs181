@@ -10,35 +10,41 @@ RecordBasedFileManager* RecordBasedFileManager::instance()
     return _rbf_manager;
 }
 
-RecordBasedFileManager::RecordBasedFileManager()
-{
+RecordBasedFileManager::RecordBasedFileManager() : {
+    _pfm = PageFileManager::instance();
 }
 
 RecordBasedFileManager::~RecordBasedFileManager()
 {
 }
 
-RC RecordBasedFileManager::createFile(const string &fileName) {
-    //PagedFileManager::createFile(fileName);
+RC RecordBasedFileManager::createFile(const string &fileName) 
+{
+    _pfm.createFile(fileName);
     return -1;
 }
 
-RC RecordBasedFileManager::destroyFile(const string &fileName) {
-    //PagedFileManager::destroyFile(fileName);
+RC RecordBasedFileManager::destroyFile(const string &fileName) 
+{
+    _pfm.destroyFile(fileName);
     return -1;
 }
 
-RC RecordBasedFileManager::openFile(const string &fileName, FileHandle &fileHandle) {
-    //PagedFileManager::openFile(fileName, fileHandle);
+RC RecordBasedFileManager::openFile(const string &fileName, 
+                                    FileHandle &fileHandle) 
+{
+    _pfm.openFile(fileName, fileHandle);
     return -1;
 }
 
-RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
-    //PagedFileManager::closeFile(fileHandle);
+RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) 
+{
+    _pfm.closeFile(fileHandle);
     return -1;
 }
 
-RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
+RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, 
+ const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
     return -1;
 }
 
