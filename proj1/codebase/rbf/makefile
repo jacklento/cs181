@@ -39,4 +39,4 @@ $(CODEROOT)/rbf/librbf.a:
 
 .PHONY: clean
 clean:
-	-rm rbftest rbftest11a rbftest11b ${TESTBIN} *.a *.o *~ *.t *.out
+	-rm rbftest rbftest11a rbftest11b ${TESTBIN} *.a *.o *~ *.t *.out test_1
