@@ -238,7 +238,7 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
    int fread_rc = fread (data, 1, PAGE_SIZE, _fstream);
 
    DEBUG_TEST(
-      if (!ferror (_fstream)) {
+      if (ferror (_fstream)) {
          RC_MSG(rc::file_read_error, "\n");
          return rc::file_read_error;
       }
