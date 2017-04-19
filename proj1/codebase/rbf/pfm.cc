@@ -33,9 +33,8 @@ namespace rc {
         file_handle_in_use,
         file_handle_empty,
         page_does_not_exist,
-        page_read_error,
-        page_write_error,
-        page_append_error,
+        incomplete_page_read,
+        incomplete_page_write,
         last_rc  // This must be the last RC
     };
 }
@@ -54,9 +53,8 @@ const vector<string> rc_msgs = {
    "error: file handle in use",
    "error: file handle empty",
    "error: page does not exist",
-   "error: page read error",
-   "error: page write error",
-   "error: page append error",
+   "error: incomplete page read",
+   "error: incomplete page write",
    "last return code"
 };
 
@@ -155,7 +153,7 @@ RC PagedFileManager::openFile(const string &fileName,
    const char* cfname = fileName.c_str();
    struct stat buffer;
    // Check if file exists
-   if (stat (cfname, &buffer) == 0) {
+   if (stat (cfname, &buffer) != 0) {
       RC_MSG (rc::file_does_not_exist, 
               " [filename: \"%s\"]\n", cfname);
       return rc::file_does_not_exist;
@@ -213,30 +211,31 @@ inline int pageBeginPos(PageNum pageNum) {
 } 
 
 inline int pageEndPos(PageNum pageNum) {
-   return pageBeginPos(pageNum) + PAGE_SIZE -1;
+   return pageBeginPos(pageNum) + PAGE_SIZE - 1;
 }
 
-//PRE: data must be of size PAGE_SIZE 
-//WARNING: no data size check, no NULL check
+// Reads from the fstream into data memory 
+// PRE: data must be of size PAGE_SIZE 
+// WARNING: no data size check, no NULL check
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
    DEBUG_TEST(
       if (data == NULL) {
          DEBUG_LOG("error: void* data == NULL\n"); 
       }
+      if (isEmpty()) {
+        RC_MSG(rc::file_handle_empty, "\n");
+        return rc::file_handle_empty;
+      }
+      if (pageNum >= _page_count ) {
+         RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
+         return rc::page_does_not_exist;
+      }
    );
-
-   if (isEmpty()) {
-     RC_MSG(rc::file_handle_empty, "\n");
-     return rc::file_handle_empty;
-   }
-   if (pageNum >= _page_count ) {
-      RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
-      return rc::page_does_not_exist;
-   }
-
+   
+   // unchecked fseek
+   fseek (_fstream, pageBeginPos (pageNum), SEEK_SET);
    int fread_rc = fread (data, 1, PAGE_SIZE, _fstream);
-
 
    DEBUG_TEST(
       if (!ferror (_fstream)) {
@@ -244,8 +243,8 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
          return rc::file_read_error;
       }
       if (fread_rc != PAGE_SIZE) {
-         RC_MSG(rc::page_read_error, "\n");
-         return rc::page_read_error;
+         RC_MSG(rc::incomplete_page_read, "\n");
+         return rc::incomplete_page_read;
       }
    );
  
@@ -254,24 +253,57 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 }
 
 
+// Writes the data memory into the file
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
-    
-    ++writePageCounter; 
-    return -1;
+   DEBUG_TEST(
+      if (data == NULL) {
+         DEBUG_LOG("error: void* data == NULL\n"); 
+      }
+      if (isEmpty()) {
+         RC_MSG(rc::file_handle_empty, "\n");
+         return rc::file_handle_empty;
+      }
+      if (pageNum >= _page_count ) {
+         RC_MSG(rc::page_does_not_exist, "[pageNum: %d]\n", pageNum);
+         return rc::page_does_not_exist;
+      }
+   );
+   
+   // unchecked fseek
+   fseek (_fstream, pageBeginPos (pageNum), SEEK_SET);
+   if (fwrite (data, 1, PAGE_SIZE, _fstream) == PAGE_SIZE) {
+      fflush (_fstream);
+   } else {
+      RC_MSG(rc::file_write_error, "[pageNum: %d]\n", pageNum);
+      return rc::file_write_error;
+   }
+
+   ++writePageCounter; 
+   return rc::success;
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
-    ++appendPageCounter; 
-    return -1;
+   fseek (_fstream, pageBeginPos(_page_count), SEEK_SET);
+   ++_page_count;
+
+   if (fwrite (data, 1, PAGE_SIZE, _fstream) == PAGE_SIZE) {
+      fflush (_fstream);
+   } else {
+      RC_MSG(rc::incomplete_page_write, "\n");
+      return rc::incomplete_page_write;
+   }
+
+   ++appendPageCounter; 
+   return rc::success;
 }
 
 
 unsigned FileHandle::getNumberOfPages()
 {
-    return _page_count;
+   return _page_count;
 }
 
 
