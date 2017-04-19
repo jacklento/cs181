@@ -20,26 +20,26 @@ RecordBasedFileManager::~RecordBasedFileManager()
 
 RC RecordBasedFileManager::createFile(const string &fileName) 
 {
-    _pfm.createFile(fileName);
+    _pfm->createFile(fileName);
     return -1;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) 
 {
-    _pfm.destroyFile(fileName);
+    _pfm->destroyFile(fileName);
     return -1;
 }
 
 RC RecordBasedFileManager::openFile(const string &fileName, 
                                     FileHandle &fileHandle) 
 {
-    _pfm.openFile(fileName, fileHandle);
+    _pfm->openFile(fileName, fileHandle);
     return -1;
 }
 
 RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) 
 {
-    _pfm.closeFile(fileHandle);
+    _pfm->closeFile(fileHandle);
     return -1;
 }
 
