@@ -16,7 +16,9 @@ RecordBasedFileManager* RecordBasedFileManager::instance()
     return _rbf_manager;
 }
 
-RecordBasedFileManager::RecordBasedFileManager(){
+
+RecordBasedFileManager::RecordBasedFileManager() 
+{
     _pfm = PagedFileManager::instance();
 }
 
